@@ -1,0 +1,14 @@
+{
+  "name": "bdv-youtube-mp3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ffmpeg.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "brunodev09",
+  "license": "MIT",
+  "dependencies": {
+    "youtube-mp3-downloader": "^0.6.5"
+  }
+}
