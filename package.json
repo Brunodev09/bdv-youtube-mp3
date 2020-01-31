@@ -4,11 +4,19 @@
   "description": "",
   "main": "ffmpeg.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsc && node ./tsc/index.js"
   },
   "author": "brunodev09",
   "license": "MIT",
   "dependencies": {
     "youtube-mp3-downloader": "^0.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.26",
+    "clui": "^0.3.6",
+    "cors": "^2.8.5",
+    "figlet": "^1.2.4",
+    "inquirer": "^7.0.3",
+    "typescript": "^3.7.5"
   }
 }

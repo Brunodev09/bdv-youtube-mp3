@@ -5,3 +5,4 @@ build
 main.spec
 videos
 package-lock.json
+tsc
