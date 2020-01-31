@@ -27,7 +27,7 @@ class Queue {
         // }
     }
 
-    registerFunction(f: any, fId: string) {
+    registerFunction(f: Promise<any>, fId: string) {
         this.funcMap.set(fId, f);
     }
 
