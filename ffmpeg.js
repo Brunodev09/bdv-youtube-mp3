@@ -1,7 +1,7 @@
 
-const Mp3Downloader = require("youtube-mp3-downloader");
 const fs = require('fs');
 const _ = process.argv.slice(2);
+const Streamer = require("./tsc/Streamer");
 
 if (!_ || !_.length) {
     console.error("Missing required parameters!");
@@ -18,17 +18,11 @@ try {
             console.log("Dir created.");
         });
     }
-
-    const ytStream = new Mp3Downloader({
-        "ffmpegPath": pathToCodec,
-        "outputPath": outPath,
-        "youtubeVideoQuality": "highest",
-        "queueParallelism": 2,
-        "progressTimeout": 2000
-    });
-
+    const ytStream = new Streamer("highest", "/home/bgiannoti/Work/bdv-youtube-mp3/videos", 1000,
+    "/snap/bin/ffmpeg", "MP3");
     ytStream.download(link);
-
+    ytStream.runQueue();
+    
     ytStream.on("finished", (err, data) => {
         console.log(JSON.stringify(data));
     });
@@ -41,6 +35,7 @@ try {
         console.log(JSON.stringify(progress));
     });
 } catch (e) {
+    console.error(e)
     console.error("NO_CODEC_ERR");
     process.exit(1);
 }

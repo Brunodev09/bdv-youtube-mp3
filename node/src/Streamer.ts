@@ -1,5 +1,3 @@
-import os from "os";
-import util from "util";
 import ffmpeg from "fluent-ffmpeg";
 import ytdl from "ytdl-core";
 import pgStream from "progress-stream";
@@ -9,23 +7,21 @@ import { CONSTANTS } from "./Constants";
 import { queue, Task } from "./Queue";
 import Video from "./Video";
 import Output from "./Output";
-const EventEmitter = require("events").EventEmitter;
+import { EventEmitter } from "events";
 
-export class Scrapper extends EventEmitter {
+export default class Streamer extends EventEmitter {
     baseURL: string;
     fileNameReplacements: (string | RegExp)[][];
     quality: string = "highest";
     timeout: number = 1000;
-    queue: number = 1;
     out: string;
     codecPath: string;
-    constructor(quality: string, out: string, timeout: number, queue: number, codecPath: string, conversionType: string) {
+    constructor(quality: string, out: string, timeout: number, codecPath: string, conversionType: string) {
         super();
 
         this.baseURL = CONSTANTS.DEFAULT_YT_BASE_LINK;
         this.quality = quality;
         this.out = out;
-        this.queue = queue
         this.timeout = timeout;
         this.fileNameReplacements = [[/"/g, ""], [/\|/g, ""], [/'/g, ""], [/\//g, ""], [/\?/g, ""], [/:/g, ""], [/;/g, ""]];
         if (!codecPath && conversionType.toUpperCase() === CONSTANTS.MP3) throw new Error("Codec binaries path is mandatory for mp3 conversion.");
@@ -49,8 +45,8 @@ export class Scrapper extends EventEmitter {
         queue.registerFunction(func, fid);
     }
 
-    download(videoId, fileName) {
-        this.pushToQueue(new Task("download", [videoId, fileName]));
+    download(videoId, fileName?) {
+        this.pushToQueue(new Task("download", [videoId], this));
     }
 
     async runQueue() {
@@ -58,11 +54,9 @@ export class Scrapper extends EventEmitter {
     }
 
     async streamDownload(...args) {
-
         return new Promise((resolve, reject) => {
-
-            let [videoId, fileName] = args;
-            const url = this.baseURL + videoId;
+            let [videoId, _this, fileName] = args;
+            const url = _this.baseURL + videoId;
             let result = new Output(videoId, null, null, null, null, null, null);
 
             ytdl.getInfo(url, (err, info) => {
@@ -70,7 +64,7 @@ export class Scrapper extends EventEmitter {
                 if (err) reject(err.message);
 
                 let videoDetailsResponse = info.player_response.videoDetails;
-                const video = new Video(this.cleanFileName(videoDetailsResponse.title), "Unknown", "Unknown", videoDetailsResponse.thumbnail.thumbnails[0].url || null);
+                const video = new Video(_this.cleanFileName(videoDetailsResponse.title), "Unknown", "Unknown", videoDetailsResponse.thumbnail.thumbnails[0].url || null);
 
                 if (video.videoTitle.indexOf("-") > -1) {
                     var temp = video.videoTitle.split("-");
@@ -85,24 +79,28 @@ export class Scrapper extends EventEmitter {
                 video.videoTitle = video.videoTitle.replace(/[^\w\s]/gi, '').replace(/'/g, '').replace(' ', '-');
                 video.title = video.title.replace(/[^\w\s]/gi, '').replace(/'/g, '').replace(' ', '-');
                 video.artist = video.artist.replace(/[^\w\s]/gi, '').replace(/'/g, '').replace(' ', '-');
+                fileName = (fileName ? _this.out + "/" + fileName : _this.out + "/" + (sanitize(video.videoTitle) || videoDetailsResponse.videoId) + ".mp3");
 
-                fileName = (fileName ? this.out + "/" + fileName : this.out + "/" + (sanitize(video.videoTitle) || videoDetailsResponse.videoId) + ".mp3");
+                result.fileName = fileName;
+                result.url = url;
+                result.title = video.videoTitle;
+                result.artist = video.artist;
+                result.title = video.title;
+                result.thumbnail = video.thumbnail;
 
-                ytdl.getInfo(url, { quality: this.quality }, (err, infoNested) => {
+                ytdl.getInfo(url, { quality: _this.quality }, (err, infoNested) => {
 
                     if (err) reject(err.message);
-
                     const stream = ytdl.downloadFromInfo(infoNested, {
-                        quality: this.quality,
+                        quality: _this.quality,
                         requestOptions: { maxRedirects: 5 }
                     });
-
 
                     stream.on("response", (httpResponse) => {
 
                         const pStream = pgStream({
                             length: parseInt(httpResponse.headers["content-length"]),
-                            time: this.timeout
+                            time: _this.timeout
                         });
 
                         pStream.on("progress", (progress) => {
@@ -113,7 +111,7 @@ export class Scrapper extends EventEmitter {
                                     averageSpeed: parseFloat(progress.speed.toFixed(2))
                                 }
                             }
-                            this.emit("progress", { videoId, progress });
+                            _this.emit("progress", { videoId, progress });
                         });
                         const outputOptions = [
                             "-id3v2_version", "4",
@@ -121,7 +119,7 @@ export class Scrapper extends EventEmitter {
                             "-metadata", "artist=" + video.artist
                         ];
                         new ffmpeg({
-                            source: stream.pipe(pgStream)
+                            source: stream.pipe(pStream)
                         })
                             .audioBitrate((<any>infoNested.formats[0]).audioBitrate)
                             .withAudioCodec("libmp3lame")
@@ -130,13 +128,7 @@ export class Scrapper extends EventEmitter {
                             .on("error", (err) => {
                                 reject(err.message);
                             })
-                            .on("end", function () {
-                                result.fileName = fileName;
-                                result.url = url;
-                                result.title = video.videoTitle;
-                                result.artist = video.artist;
-                                result.title = video.title;
-                                result.thumbnail = video.thumbnail;
+                            .on("end", () => {
                                 resolve(result);
                             })
                             .saveToFile(fileName);
