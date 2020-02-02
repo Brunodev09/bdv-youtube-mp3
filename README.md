@@ -24,6 +24,13 @@ $: npm i
 ```
 $: pip install -r /path/to/requirements.txt
 ```
+
+* Now you can either build it to an executable file or just run it from python3, like so:
+
+```
+$: python3 main.py
+```
+
 ### How to use, types and file formats
 
 ![](picture.png)
