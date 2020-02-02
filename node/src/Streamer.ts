@@ -8,6 +8,7 @@ import { queue, Task } from "./Queue";
 import Video from "./Video";
 import Output from "./Output";
 import { EventEmitter } from "events";
+import fs from "fs";
 
 export default class Streamer extends EventEmitter {
     baseURL: string;
@@ -16,16 +17,27 @@ export default class Streamer extends EventEmitter {
     timeout: number = 1000;
     out: string;
     codecPath: string;
-    constructor(quality: string, out: string, timeout: number, codecPath: string, conversionType: string) {
+    ext: string;
+    constructor(format: string, quality: string, out: string, timeout: number, codecPath?: string) {
         super();
 
         this.baseURL = CONSTANTS.DEFAULT_YT_BASE_LINK;
-        this.quality = quality;
+        this.quality = quality.toLowerCase();
         this.out = out;
         this.timeout = timeout;
         this.fileNameReplacements = [[/"/g, ""], [/\|/g, ""], [/'/g, ""], [/\//g, ""], [/\?/g, ""], [/:/g, ""], [/;/g, ""]];
-        if (!codecPath && conversionType.toUpperCase() === CONSTANTS.MP3) throw new Error("Codec binaries path is mandatory for mp3 conversion.");
-        ffmpeg.setFfmpegPath(codecPath);
+        if (codecPath && format.toLowerCase() === CONSTANTS.MP3) ffmpeg.setFfmpegPath(codecPath);
+        if (format.toLowerCase().includes(CONSTANTS.AUDIO)) this.ext = ".mp3";
+        else if (format.toLowerCase().includes(CONSTANTS.VIDEO)) this.ext = ".flv";
+
+        try {
+            fs.exists(out, () => {});
+        } catch (NOT_EXISTS_ERR) {
+            console.error("NOT_EXISTS_ERR")
+            fs.mkdir(out, () => {
+                console.log("Dir created.");
+            });
+        }
 
         this.registerToQueue(this.streamDownload, "download");
     }
@@ -79,7 +91,7 @@ export default class Streamer extends EventEmitter {
                 video.videoTitle = video.videoTitle.replace(/[^\w\s]/gi, '').replace(/'/g, '').replace(' ', '-');
                 video.title = video.title.replace(/[^\w\s]/gi, '').replace(/'/g, '').replace(' ', '-');
                 video.artist = video.artist.replace(/[^\w\s]/gi, '').replace(/'/g, '').replace(' ', '-');
-                fileName = (fileName ? _this.out + "/" + fileName : _this.out + "/" + (sanitize(video.videoTitle) || videoDetailsResponse.videoId) + ".mp3");
+                fileName = (fileName ? _this.out + "/" + fileName : _this.out + "/" + (sanitize(video.videoTitle) || videoDetailsResponse.videoId) + _this.ext);
 
                 result.fileName = fileName;
                 result.url = url;
@@ -110,28 +122,37 @@ export default class Streamer extends EventEmitter {
                                     runtime: progress.runtime,
                                     averageSpeed: parseFloat(progress.speed.toFixed(2))
                                 }
+
                             }
                             _this.emit("progress", { videoId, progress });
                         });
-                        const outputOptions = [
-                            "-id3v2_version", "4",
-                            "-metadata", "title=" + video.title,
-                            "-metadata", "artist=" + video.artist
-                        ];
-                        new ffmpeg({
-                            source: stream.pipe(pStream)
-                        })
-                            .audioBitrate((<any>infoNested.formats[0]).audioBitrate)
-                            .withAudioCodec("libmp3lame")
-                            .toFormat("mp3")
-                            .outputOptions(outputOptions)
-                            .on("error", (err) => {
-                                reject(err.message);
+
+                        if (_this.ext.includes(CONSTANTS.FLV)) {
+                            stream
+                                .pipe(pStream)
+                                .pipe(fs.createWriteStream(fileName));
+                        }
+                        else {
+                            const outputOptions = [
+                                "-id3v2_version", "4",
+                                "-metadata", "title=" + video.title,
+                                "-metadata", "artist=" + video.artist
+                            ];
+                            new ffmpeg({
+                                source: stream.pipe(pStream)
                             })
-                            .on("end", () => {
-                                resolve(result);
-                            })
-                            .saveToFile(fileName);
+                                .audioBitrate((<any>infoNested.formats[0]).audioBitrate)
+                                .withAudioCodec("libmp3lame")
+                                .toFormat(CONSTANTS.MP3)
+                                .outputOptions(outputOptions)
+                                .on("error", (err) => {
+                                    reject(err.message);
+                                })
+                                .on("end", () => {
+                                    resolve(result);
+                                })
+                                .saveToFile(fileName);
+                        }
                     });
                 });
             });

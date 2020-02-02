@@ -23,26 +23,26 @@ function asyncTimeout(t: any): Promise<string> {
 
 // await queue.run();
 
-(async () => {
+// (async () => {
 
-    const ytStream = new Streamer("highest", "/home/bgiannoti/Work/bdv-youtube-mp3/videos", 1000,
-        "/snap/bin/ffmpeg", "MP3");
-    const link = "4oMJIyVOWL4";
+//     const ytStream = new Streamer("highest", "/home/bgiannoti/Work/bdv-youtube-mp3/videos", 1000,
+//         "/snap/bin/ffmpeg", "MP3");
+//     const link = "4oMJIyVOWL4";
 
-    ytStream.download(link);
-    ytStream.runQueue();
+//     ytStream.download(link);
+//     ytStream.runQueue();
 
-    ytStream.on("finished", (err, data) => {
-        console.log(JSON.stringify(data));
-    });
+//     ytStream.on("finished", (err, data) => {
+//         console.log(JSON.stringify(data));
+//     });
 
-    ytStream.on("error", (error) => {
-        console.log(error);
-    });
+//     ytStream.on("error", (error) => {
+//         console.log(error);
+//     });
 
-    ytStream.on("progress", (progress) => {
-        console.log(JSON.stringify(progress));
-    });
+//     ytStream.on("progress", (progress) => {
+//         console.log(JSON.stringify(progress));
+//     });
 
 
-})();
+// })();

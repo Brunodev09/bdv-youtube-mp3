@@ -9,17 +9,8 @@ if (!_ || !_.length) {
 }
 
 try {
-    [pathToCodec, outPath, link] = String(_).split('__');
-    try {
-        fs.exists(outPath);
-    } catch (NOT_EXISTS_ERR) {
-        console.error("NOT_EXISTS_ERR")
-        fs.mkdir(outPath, () => {
-            console.log("Dir created.");
-        });
-    }
-    const ytStream = new Streamer.default("highest", "/home/bgiannoti/Work/bdv-youtube-mp3/videos", 1000,
-    "/snap/bin/ffmpeg", "MP3");
+    [pathToCodec, outPath, link, format, quality] = String(_).split('__');
+    const ytStream = new Streamer.default(format, quality, outPath, 1000, pathToCodec);
     ytStream.download(link);
     ytStream.runQueue();
     

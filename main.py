@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.ttk as ttk
 from tkinter import messagebox
 import json
 from Naked.toolshed.shell import muterun_js
@@ -61,12 +62,16 @@ def node_child(path, args):
 def callback():
     global THREAD_ID
     THREAD_ID += 1
-    for k in [e1.entry.get(), e2.entry.get(), e3.entry.get(), e4.entry.get()]:
+    arrArgs = [e1.entry.get(), e2.entry.get(), e3.entry.get(), e4.entry.get(), cb1.get(), cb2.get()]
+
+    if (cb1.get() != "Audio"):
+        arrArgs.pop(0)
+
+    for k in arrArgs:
         if not k:
             return messagebox.showwarning("Hold on","Please fill all the boxes.")    
-
     try:
-        (create_thread_node(THREAD_ID, e4.entry.get(), "ffmpeg.js", '__'.join([e1.entry.get(), e2.entry.get(), e3.entry.get(), e4.entry.get()]))).start()        
+        (create_thread_node(THREAD_ID, e4.entry.get(), "ffmpeg.js", '__'.join([e1.entry.get(), e2.entry.get(), e3.entry.get(), cb1.get(), cb2.get()]))).start()        
     except Exception as e:
         print(e)
         print ("Could not start thread.")
@@ -79,20 +84,28 @@ t2 = j.doc['pathToVideo']
 t3 = j.doc['link']
 
 root = tk.Tk()
-root.geometry("300x250")
+root.geometry("300x350")
 root.resizable(False, False)
 root.title("bdv-youtube-mp3")
 
-l1 = create_label(root, "Path to codec:", "green")
+l5 = create_label(root, "Format type:", "black")
+cb1 = ttk.Combobox(root, values=("Audio", "Video"), state='readonly')
+cb1.pack()
+
+l6 = create_label(root, "Quality:", "black")
+cb2 = ttk.Combobox(root, values=("Highest", "Lowest"), state='readonly')
+cb2.pack()
+
+l1 = create_label(root, "Path to codec:", "black")
 e1 = create_entry(root, 20, tk.StringVar(root, value=t1), tk.TOP)
 
-l2 = create_label(root, "Path to .mp3 folder:", "blue")
+l2 = create_label(root, "Path to output folder:", "black")
 e2 = create_entry(root, 20, tk.StringVar(root, value=t2), tk.TOP)
 
-l3 = create_label(root, "Youtube link:", "red")
+l3 = create_label(root, "Youtube link:", "black")
 e3 = create_entry(root, 20, tk.StringVar(root, value=t3), tk.TOP)
 
-l4 = create_label(root, "Video a name for tracking purposes:", "black")
+l4 = create_label(root, "Identifier (any name):", "black")
 e4 = create_entry(root, 30, "",  tk.TOP) 
 
 b = tk.Button(root, text="Download and convert!", fg="black", command=callback)
