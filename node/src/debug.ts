@@ -1,4 +1,3 @@
-import { queue, Task } from "./Queue";
 import Streamer from "./Streamer";
 
 function asyncTimeout(t: any): Promise<string> {
