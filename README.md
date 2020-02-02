@@ -31,7 +31,7 @@ $: pip install -r /path/to/requirements.txt
 $: python3 main.py
 ```
 
-### How to use, types and file formats
+### How to use
 
 ![](picture.png)
 
