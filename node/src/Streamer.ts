@@ -26,8 +26,10 @@ export default class Streamer extends EventEmitter {
         this.out = out;
         this.timeout = timeout;
         this.fileNameReplacements = [[/"/g, ""], [/\|/g, ""], [/'/g, ""], [/\//g, ""], [/\?/g, ""], [/:/g, ""], [/;/g, ""]];
-        if (codecPath && format.toLowerCase() === CONSTANTS.AUDIO) ffmpeg.setFfmpegPath(codecPath);
-        if (format.toLowerCase().includes(CONSTANTS.AUDIO)) this.ext = ".mp3";
+        if (format.toLowerCase().includes(CONSTANTS.AUDIO)) {
+            this.ext = ".mp3";
+            ffmpeg.setFfmpegPath(codecPath);
+        }
         else if (format.toLowerCase().includes(CONSTANTS.VIDEO)) this.ext = ".flv";
 
         try {
